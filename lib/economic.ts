@@ -133,14 +133,13 @@ async function fetchEconomicProductsPage(args: { skippages?: number; pagesize: n
     const text = await res.text().catch(() => "");
     throw new Error(`e-conomic products sync failed: ${res.status} ${res.statusText} ${text}`);
   }
-  const data = (await res.json()) as
-    | {
-        collection?: EconomicRestProduct[];
-        pagination?: { nextPage?: string | null; lastPage?: string | null; skipPages?: number; results?: number };
-      }
-    | { items?: EconomicRestProduct[] };
-  const items = "collection" in data ? data.collection ?? [] : data.items ?? [];
-  const pagination = "pagination" in data ? data.pagination : undefined;
+  const data = (await res.json()) as {
+    collection?: EconomicRestProduct[];
+    items?: EconomicRestProduct[];
+    pagination?: { nextPage?: string | null; lastPage?: string | null; skipPages?: number; results?: number };
+  };
+  const items = Array.isArray(data.collection) ? data.collection : data.items ?? [];
+  const pagination = data.pagination;
   return { items, pagination };
 }
 
