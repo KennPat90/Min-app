@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { randomToken } from "@/lib/crypto";
+import { requireUser } from "@/lib/auth";
 
 function setSessionCookie(token: string, expiresAt: Date) {
   cookies().set("session", token, {
@@ -40,6 +41,25 @@ export async function signupAction(formData: FormData) {
 
   setSessionCookie(token, expiresAt);
   return redirect("/calendar");
+}
+
+export async function createUserByAdminAction(formData: FormData) {
+  await requireUser();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !email.includes("@")) return redirect("/admin?error=invalid_email");
+  if (!password || password.length < 8) return redirect("/admin?error=password_too_short");
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return redirect("/admin?error=email_in_use");
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.user.create({
+    data: { email, passwordHash }
+  });
+
+  return redirect("/admin?created_user=1");
 }
 
 export async function loginAction(formData: FormData) {

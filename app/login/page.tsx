@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { loginAction } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -41,9 +40,6 @@ export default async function LoginPage({
         </button>
       </form>
 
-      <p style={{ marginTop: 16 }}>
-        Har du ikke en konto? <Link href="/signup">Opret bruger</Link>
-      </p>
     </div>
   );
 }
