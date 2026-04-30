@@ -12,7 +12,7 @@ const errorMessages: Record<string, string> = {
 export default async function AdminPage({
   searchParams
 }: {
-  searchParams?: { error?: string };
+  searchParams?: { error?: string; created_user?: string };
 }) {
   const user = await requireUser();
   const employees = await prisma.employee.findMany({
