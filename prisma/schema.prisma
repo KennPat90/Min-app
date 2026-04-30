@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash String
+  createdAt     DateTime  @default(now())
+
+  sessions  Session[]
+  customers Customer[]
+  employees Employee[]
+  workCases WorkCase[]
+  products Product[]
+  workCaseMaterials WorkCaseMaterial[]
+  productSelectionStats ProductSelectionStat[]
+
+  economicSyncState EconomicSyncState?
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productNumber  String
+  name           String
+  description    String?
+  unit           String?
+  unitNetPrice   Float?
+  barred         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workCaseMaterials WorkCaseMaterial[]
+  selectionStats ProductSelectionStat[]
+
+  @@unique([userId, productNumber])
+  @@index([userId, name])
+}
+
+model ProductSelectionStat {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  selectedCount  Int      @default(0)
+  lastSelectedAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId, selectedCount])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  phone     String
+  archivedAt DateTime?
+
+  // E-conomic mapping (master) - udfyldes senere via integration/sync.
+  economicCustomerNumber String?
+  cvrNumber               String?
+  address                 String?
+  postalCode              String?
+  city                    String?
+  country                 String?
+  paymentTerms           String?
+
+  createdAt DateTime @default(now())
+  workCases  WorkCase[]
+
+  @@unique([userId, economicCustomerNumber])
+}
+
+model EconomicSyncState {
+  userId                String   @id
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastSyncAt            DateTime?
+  lastProductsSyncAt    DateTime?
+  lastProductsSyncCount Int?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Employee {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  colorHex  String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  workCases WorkCase[]
+}
+
+model WorkCase {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  title       String
+  caseNumber  String?
+  description String?
+  locationAddress String?
+  workHours   Float?
+  hourlyRate  Float?
+  materialsAmount Float?
+  invoiceLineText String?
+  startAt     DateTime
+  endAt       DateTime
+  status      String   @default("planned")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  materials   WorkCaseMaterial[]
+
+  @@index([userId, startAt])
+  @@index([employeeId, startAt])
+}
+
+model WorkCaseMaterial {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workCaseId String
+  workCase   WorkCase @relation(fields: [workCaseId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity   Float    @default(1)
+  unitPrice  Float?
+  lineText   String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, workCaseId])
+}
+
